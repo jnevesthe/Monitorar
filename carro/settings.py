@@ -28,9 +28,7 @@ SECRET_KEY = 'django-insecure-sz((s2o)_@14m=s73)#k%c+t-8$$s_m98ozb1e#a9cpr%$ak^m
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'monitorar.onrender.com',
-    'localhost',
-    '127.0.0.1'
+    '*'
 ]
 
 # Application definition
