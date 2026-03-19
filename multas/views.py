@@ -34,7 +34,7 @@ def login_view(request):
         if(user):
             login(request, user)
             #print(user.autorizado)
-            return redirect('list')                    
+            return redirect('list_c')                    
             
     return render(request, 'login.html')     
     
@@ -120,7 +120,7 @@ def confirmar_multa1(request, pk):
     multa.confirmada = True
     multa.save()
 
-    return redirect('list_v')
+    return redirect('list_c')
 
 @login_required
 def confirm1(request, pk):
@@ -155,7 +155,7 @@ class Delete1(LoginRequiredMixin, DeleteView):
         multa = self.get_object()
 
         if multa.confirmada:
-            return redirect('list_v')  # 🚫 bloqueia delete
+            return redirect('list_c')  # 🚫 bloqueia delete
 
         return super().dispatch(request, *args, **kwargs)
 
