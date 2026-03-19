@@ -14,15 +14,14 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg-body);
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background-color: var(--bg-body); 
             padding-top: 90px;
             display: flex;
             justify-content: center;
         }
 
-        /* --- NAVBAR --- */
         .navbar {
             position: fixed; top: 0; width: 100%; height: 70px;
             background: var(--card-white); padding: 0 20px;
@@ -30,15 +29,10 @@
             display: flex; justify-content: space-between; align-items: center; z-index: 1000;
         }
 
-        .btn-voltar {
-            text-decoration: none; color: var(--primary-color);
-            font-weight: 700; font-size: 0.9rem;
-        }
-
+        .btn-voltar { text-decoration: none; color: var(--primary-color); font-weight: 700; font-size: 0.9rem; }
         .user-profile { text-align: right; display: flex; align-items: center; gap: 10px; }
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover; }
 
-        /* --- FORMULÁRIO --- */
         .container { width: 100%; max-width: 450px; padding: 15px; }
 
         .card-emissao {
@@ -83,7 +77,7 @@
             letter-spacing: 0.5px;
         }
 
-        .form-corpo input {
+        .form-corpo input, .form-corpo select {
             width: 100%;
             padding: 14px;
             border-radius: 12px;
@@ -92,11 +86,14 @@
             font-weight: 600;
             transition: border-color 0.3s;
             outline: none;
+            background-color: #fff;
         }
 
-        .form-corpo input:focus { border-color: var(--primary-color); }
+        .form-corpo input:focus, .form-corpo select:focus { border-color: var(--primary-color); }
 
-        /* BOTÕES */
+        /* Esconde o campo de velocidade por padrão */
+        #container-velocidade { display: none; }
+
         .acoes { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
 
         .btn-confirmar {
@@ -123,12 +120,7 @@
             text-decoration: underline;
         }
 
-        .aviso-data {
-            text-align: center;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-top: 15px;
-        }
+        .aviso-data { text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 15px; }
 
         @media (max-width: 400px) {
             .card-emissao { border-radius: 0; }
@@ -158,12 +150,26 @@
                 <p style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">Proprietário: {{ v.proprietario.nome_completo }}</p>
             </header>
 
-            <form method="POST" class="form-corpo">
+            <form method="POST" class="form-corpo" id="formInfracao">
                 {% csrf_token %}
+                
+                <div class="input-group">
+                    <label for="tipo_infracao">Tipo de Infração</label>
+                    <select id="tipo_infracao" name="tipo_infracao" required onchange="gerenciarCampos()">
+                        <option value="" disabled selected>Selecione o tipo...</option>
+                        <option value="excesso_velocidade">Excesso de Velocidade</option>
+                        <option value="sinal_vermelho">Avanço ao Sinal Vermelho</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="container-velocidade">
+                    <label for="velocidade_input">Velocidade Registrada (km/h)</label>
+                    <input type="number" id="velocidade_input" name="velocidade" placeholder="Informe a velocidade...">
+                </div>
 
                 <div class="input-group">
-                    <label for="valor">Valor da Infração </label>
-                    <input type="number" id="valor" name="valor" step="0.01" placeholder="Ex: 195.23" required autofocus>
+                    <label for="valor">Valor da Infração (R$)</label>
+                    <input type="number" id="valor" name="valor" step="0.01" placeholder="Ex: 195.23" required>
                 </div>
 
                 <div class="input-group">
@@ -173,7 +179,7 @@
 
                 <div class="acoes">
                     <button type="submit" class="btn-confirmar">CONFIRMAR REGISTRO</button>
-                    <button type="reset" class="btn-limpar">Limpar campos</button>
+                    <button type="reset" class="btn-limpar" onclick="resetaInterface()">Limpar campos</button>
                 </div>
 
                 <p class="aviso-data">ℹ️ A data e hora serão registradas automaticamente pelo sistema.</p>
@@ -181,5 +187,29 @@
         </div>
     </main>
 
+    <script>
+        function gerenciarCampos() {
+            const seletor = document.getElementById('tipo_infracao');
+            const containerVel = document.getElementById('container-velocidade');
+            const inputVel = document.getElementById('velocidade_input');
+
+            if (seletor.value === 'excesso_velocidade') {
+                containerVel.style.display = 'block';
+                inputVel.setAttribute('required', 'required');
+                inputVel.focus();
+            } else {
+                containerVel.style.display = 'none';
+                inputVel.removeAttribute('required');
+                inputVel.value = ''; 
+            }
+        }
+
+        function resetaInterface() {
+            document.getElementById('container-velocidade').style.display = 'none';
+            document.getElementById('velocidade_input').removeAttribute('required');
+        }
+    </script>
+
 </body>
 </html>
+

@@ -31,8 +31,9 @@ class Multa(models.Model):
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     localizacao = models.CharField(max_length=200)
     data = models.DateTimeField(auto_now_add=True)
-    agente = models.CharField(max_length=15, blank=True)
-    
+    tipo = models.CharField(blank=True)
+    velocidade = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    agente = models.CharField(max_length=15, blank=True)   
     confirmada = models.BooleanField(default=False)  # 👈 NOVO CAMPO
     def __str__(self):
         return f"{self.id} - {self.valor}"

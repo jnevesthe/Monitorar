@@ -49,7 +49,10 @@ def multar(request , pk):
     
     if request.method=='POST':
         valor=request.POST.get('valor')
+        descricao=request.POST.get('descricao')
         local=request.POST.get('local')
+        tipo = request.POST.get('tipo_infracao')
+        velocidade = request.POST.get('velocidade') # Virá vazio se não for excesso de velocidade
         print("ok")
         
         multa=Multa.objects.create(
@@ -57,7 +60,9 @@ def multar(request , pk):
             valor=valor,
             localizacao=local,
             data=timezone.now(),
-            agente=request.user,
+            tipo=tipo,
+	    velocidade=velocidade,
+            agente=request.user,            
 	    confirmada=False
 	    
         )
@@ -79,6 +84,8 @@ def multar1(request , pk):
     if request.method=='POST':
         valor=request.POST.get('valor')
         local=request.POST.get('local')
+        tipo = request.POST.get('tipo_infracao')
+        velocidade = request.POST.get('velocidade') # Virá vazio se não for excesso de velocidade
         print("ok")
 
         multa=Multa.objects.create(
@@ -86,6 +93,8 @@ def multar1(request , pk):
             valor=valor,
             localizacao=local,
             data=timezone.now(),
+            tipo=tipo,
+	    velocidade=velocidade,
             agente=request.user,
             confirmada=False
    	    
