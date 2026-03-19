@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscar Veículo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Reset básico */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #222;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #003366;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        form {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            width: 300px;
+            max-width: 90%;
+            border-radius: 6px;
+            border: 1px solid #bbb;
+            outline: none;
+            font-size: 16px;
+            margin-right: 10px;
+            transition: border 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border: 1px solid #003366;
+            box-shadow: 0 0 5px rgba(0, 51, 102, 0.3);
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: #003366;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #00509e;
+        }
+
+        p.erro {
+            color: red;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        /* Responsividade */
+        @media (max-width: 500px) {
+            form {
+                flex-direction: column;
+            }
+
+            input[type="text"] {
+                margin-right: 0;
+                margin-bottom: 10px;
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Buscar Proprietário pelo Veículo</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="matricula" id="matricula" placeholder="Digite a matrícula do veículo" required>
+        <button type="submit">Buscar</button>
+    </form>
+
+    {% if erro %}
+        <p class="erro">{{ erro }}</p>
+    {% endif %}
+
+</body>
+</html>

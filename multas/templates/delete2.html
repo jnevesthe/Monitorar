@@ -1,0 +1,17 @@
+<h2>Lista de Usuários</h2>
+<a href="{% url 'create' %}">+ Criar novo usuário</a>
+
+<!-- Josemar Neves -->
+
+
+
+<form method="POST">
+    {% csrf_token %}
+    
+         {{user.id}}
+         {{user.codigo}}
+    
+    <button type="submit">Criar</button>
+</form>
+
+<!-- Josemar Neves -->

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistema de Gestão - Lista de Proprietários</title>
+    <style>
+        :root {
+            --primary-color: #003366;
+            --secondary-color: #00509e;
+            --danger-color: #cc0000;
+            --success-color: #16a34a;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #222;
+            --border-color: #d1d1d1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-top: 75px; /* Espaço para a navbar fixa */
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 10px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Estilo da Foto de Logout */
+        .logout-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s ease;
+        }
+
+        .logout-link:hover {
+            transform: scale(1.08);
+        }
+
+        .user-photo {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+            cursor: pointer;
+        }
+
+        .user-placeholder {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: #ccc;
+            border: 2px solid var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.7em;
+            text-align: center;
+        }
+
+        /* --- CONTEÚDO --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+        }
+
+        /* --- FILTRO FIXO --- */
+        .search-container {
+            margin-bottom: 25px;
+            position: sticky;
+            top: 85px;
+            z-index: 10;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--secondary-color);
+        }
+
+        /* --- CARD DO PROPRIETÁRIO --- */
+        .proprietario-card {
+            background: var(--card-bg);
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            list-style: none;
+        }
+
+        .nome-proprietario {
+            color: var(--primary-color);
+            font-size: 1.3em;
+            display: block;
+        }
+
+        .cidade-info {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        /* --- VEÍCULO --- */
+        .veiculo-item {
+            background-color: #f8f9fa;
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid var(--secondary-color);
+            list-style: none;
+        }
+
+        .veiculo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .placa-badge {
+            background: #334155;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        /* GRID DE FOTOS */
+        .veiculo-fotos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .foto-veiculo {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        /* BOTÃO MULTAR */
+        .btn-multar {
+            display: inline-block;
+            background-color: var(--danger-color);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-align: center;
+            margin: 10px 0;
+            transition: opacity 0.2s;
+        }
+
+        /* MULTAS */
+        .multa-tag {
+            background: #fff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            border-left: 3px solid var(--danger-color);
+            display: flex;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .valor-multa { color: var(--danger-color); font-weight: bold; }
+
+        .hidden { display: none; }
+        .no-results { text-align: center; padding: 30px; color: #888; display: none; }
+
+        /* =========================================
+           RESPONSIVIDADE PARA CELULAR
+           ========================================= */
+        @media (max-width: 600px) {
+            body { padding-top: 70px; }
+            .container { padding: 10px; }
+            h1 { font-size: 1.3rem; }
+            
+            .proprietario-card { padding: 15px; }
+
+            .veiculo-header { flex-direction: column; gap: 5px; }
+            .placa-badge { width: fit-content; }
+
+            .veiculo-fotos { grid-template-columns: 1fr 1fr; }
+
+            .btn-multar {
+                display: block; /* Botão largo para toque fácil */
+                width: 100%;
+                font-size: 1rem;
+            }
+
+            .multa-tag {
+                flex-direction: column;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="user-profile">
+            <span style="font-weight: 600; color: var(--primary-color); font-size: 0.85em;">
+                {{ request.user.username }}
+            </span>
+            
+            <a href="{% url 'logout_confirm' %}" class="logout-link" title="Clique para Sair">
+                {% if request.user.foto %}
+                    <img src="{{ request.user.foto.url }}" alt="Logout" class="user-photo">
+                {% else %}
+                    <div class="user-placeholder">SAIR</div>
+                {% endif %}
+            </a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <h1>Gestão de Proprietários</h1>
+
+        <div class="search-container">
+            <input type="text" id="filtro" placeholder="Pesquisar nome, marca ou placa...">
+        </div>
+
+        <div id="no-results" class="no-results">Nenhum registro encontrado.</div>
+
+        <ul id="proprietarios-lista">
+            {% for p in proprietarios %}
+                <li class="proprietario-card">
+                    <strong class="nome-proprietario">{{ p.nome_completo }}</strong>
+                    <span class="cidade-info">📍 {{ p.cidade }}</span>
+
+                    <h4 style="font-size: 1rem; color: var(--secondary-color);">Veículos:</h4>
+                    
+                    {% for v in p.veiculos.all %}
+                        <div class="veiculo-item">
+                            <div class="veiculo-header">
+                                <div>
+                                    <strong>{{ v.marca }} {{ v.modelo }}</strong><br>
+                                    <small>Cor: {{ v.cor }}</small>
+                                </div>
+                                <span class="placa-badge">{{ v.matricula }}</span>
+                            </div>
+
+                            <div class="veiculo-fotos">
+                                {% if v.foto_frontal %}<img src="{{ v.foto_frontal.url }}" class="foto-veiculo">{% endif %}
+                                {% if v.foto_traseira %}<img src="{{ v.foto_traseira.url }}" class="foto-veiculo">{% endif %}
+                                {% if v.foto_lateralE %}<img src="{{ v.foto_lateralE.url }}" class="foto-veiculo">{% endif %}
+                                {% if v.foto_lateralD %}<img src="{{ v.foto_lateralD.url }}" class="foto-veiculo">{% endif %}
+                            </div>
+
+                            <a href="{% url 'multar' v.id %}" class="btn-multar">🚨 Emitir Multa</a>
+
+                            <div class="multas-secao">
+                                {% for m in v.multas.all %}
+                                    <div class="multa-tag">
+                                        <span><b class="valor-multa">R$ {{ m.valor }}</b> | {{ m.localizacao }}</span>
+                                        <small style="color: #888;">{{ m.data|date:"d/m/Y" }}</small>
+                                    </div>
+                                {% empty %}
+                                    <p style="font-size: 0.8em; color: var(--success-color); margin-top: 10px;">✅ Sem multas pendentes.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p style="font-size: 0.9em; color: #999; margin-top: 10px;">Nenhum veículo cadastrado.</p>
+                    {% endfor %}
+                </li>
+            {% empty %}
+                <p style="text-align: center;">Nenhum proprietário na base de dados.</p>
+            {% endfor %}
+        </ul>
+    </main>
+
+    <script>
+        const filtroInput = document.getElementById('filtro');
+        const noResults = document.getElementById('no-results');
+
+        filtroInput.addEventListener('input', function() {
+            const termo = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.proprietario-card');
+            let encontrou = false;
+
+            cards.forEach(card => {
+                // Busca em todo o conteúdo de texto do card (nome, placa, marca)
+                const conteudo = card.innerText.toLowerCase();
+                
+                if (conteudo.includes(termo)) {
+                    card.classList.remove('hidden');
+                    encontrou = true;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+
+            noResults.style.display = encontrou ? 'none' : 'block';
+        });
+    </script>
+</body>
+</html>
