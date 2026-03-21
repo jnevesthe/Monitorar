@@ -1,5 +1,3 @@
-#Josemar Neves
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -85,7 +83,11 @@ def multar1(request , pk):
         valor=request.POST.get('valor')
         local=request.POST.get('local')
         tipo = request.POST.get('tipo_infracao')
-        velocidade = request.POST.get('velocidade') # Virá vazio se não for excesso de velocidade
+        try:
+          velocidade = request.POST.get('velocidade') # Virá vazio se não for excesso de velocidade
+        except:
+          velocidade=0
+        
         print("ok")
 
         multa=Multa.objects.create(
@@ -175,33 +177,56 @@ class Detail(LoginRequiredMixin, DetailView):
     context_object_name = "veiculo"    
     login_url='login'
 
-@login_required  
+
+
+import pytesseract # Certifique-se de ter instalado: pip install pytesseract
+from PIL import Image
+from django.shortcuts import render, redirect
+from .models import Veiculo
+
 def get_view(request):
     if request.method == "POST":
-        matricula = request.POST.get("matricula", "").strip().upper()
-        
-        veiculo = Veiculo.objects.filter(matricula__icontains=matricula).first()
+        tipo_busca = request.POST.get("tipo_busca")
+        matricula = ""
 
-        if veiculo:
-            proprietario = veiculo.proprietario
-            # agora redirecionamos para a página de resultado
-            print(proprietario.id)
-            
-            return redirect('lista', pk=veiculo.id)
-            
-            """
-            return render(request, "resultado.html", {
-                "matricula": veiculo.matricula,
-                "proprietario": proprietario
-            })
-           """
-           
+        if tipo_busca == "texto":
+            # Busca simples por texto
+            matricula = request.POST.get("matricula", "").strip().upper()
+        
+        elif tipo_busca == "foto":
+            # Busca por imagem
+            foto = request.FILES.get("foto")
+            if foto:
+                try:
+                    # Abre a imagem e extrai o texto (OCR)
+                    img = Image.open(foto)
+                    texto_extraido = pytesseract.image_to_string(img)
+                    
+                    # Limpeza básica do texto (remove espaços e coloca em maiúsculas)
+                    # Pode ser necessário usar Regex aqui dependendo do padrão das matrículas
+                    matricula = texto_extraido.strip().upper().replace(" ", "").replace("\n", "")
+                except Exception as e:
+                    return render(request, "get.html", {"erro": "Erro ao processar a imagem."})
+            else:
+                return render(request, "get.html", {"erro": "Nenhuma foto foi enviada."})
+
+        # Processamento comum para ambos os casos
+        if matricula:
+            veiculo = Veiculo.objects.filter(matricula__icontains=matricula).first()
+
+            if veiculo:
+                # Se encontrou, redireciona para a página de detalhes/lista
+                return redirect('lista', pk=veiculo.id)
+            else:
+                return render(request, "get.html", {
+                    "erro": f"Nenhum veículo encontrado para a matrícula: {matricula}"
+                })
         else:
-            return render(request, "get.html", {
-                "erro": "Nenhum veículo encontrado com essa matrícula."
-            })
+            return render(request, "get.html", {"erro": "Não foi possível identificar a matrícula."})
 
     return render(request, "get.html")
+
+
 
 
 @login_required
@@ -219,71 +244,6 @@ def logout_confirm(request):
     return render(request, 'logout_confirm.html')
 
 
-"""
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-import cv2, numpy as np
-from PIL import Image
-import pytesseract
-
-
-@csrf_exempt
-def api_multar(request):
-    if request.method != "POST":
-        return JsonResponse({"erro": "Apenas POST permitido"}, status=405)
-
-    if "foto" not in request.FILES:
-        return JsonResponse({"erro": "Envie uma foto no campo 'foto'"}, status=400)
-
-    # pega o arquivo
-    arquivo = request.FILES["foto"].read()
-
-    # transforma em imagem do OpenCV
-    np_data = np.frombuffer(arquivo, np.uint8)
-    img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
-
-    # Pré-processamento
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-
-    # OCR - leitura da matrícula
-    pil_img = Image.fromarray(thresh)
-    texto = pytesseract.image_to_string(pil_img, config="--psm 8")
-
-    # limpa caracteres
-    matricula = ''.join(ch for ch in texto.upper() if ch.isalnum())
-
-    if not matricula:
-        return JsonResponse({"erro": "Não foi possível ler a matrícula"}, status=400)
-
-    # procura veículo
-    veiculo = Veiculo.objects.filter(matricula__icontains=matricula).first()
-
-    if not veiculo:
-        return JsonResponse({"erro": "Veículo não encontrado", "matricula": matricula}, status=404)
-
-    # cria multa automaticamente
-    multa = Multa.objects.create(
-        veiculo=veiculo,
-        valor=100,  # defina o valor automático
-        localizacao="Detectado pela API",
-        data=timezone.now()
-        agente=request.user
-    )
-
-    return JsonResponse({
-        "status": "ok",
-        "multa_id": multa.id,
-        "matricula": matricula,
-        "veiculo": veiculo.id
-    })
-
-"""
-    
-
-
-"""
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -294,49 +254,92 @@ from .serializers import MultaSerializer
 import cv2, numpy as np
 from PIL import Image
 import pytesseract
+import hashlib
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_multar(request):
+
+    # ---------------- FOTO ----------------
     if 'foto' not in request.FILES:
-        return Response({'erro': 'Sem foto'}, status=400)
+        return Response({'erro': 'Foto obrigatória'}, status=400)
 
-    arquivo = request.FILES['foto'].read()
-    np_data = np.frombuffer(arquivo, np.uint8)
-    img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
+    try:
+        arquivo = request.FILES['foto'].read()
+    except Exception as e:
+        return Response({'erro': 'Falha ao ler arquivo da foto', 'detalhes': str(e)}, status=500)
 
-    # Processamento OCR
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-    pil_img = Image.fromarray(thresh)
-    texto = pytesseract.image_to_string(pil_img, config="--psm 8")
-    matricula = ''.join(c for c in texto.upper() if c.isalnum())
+    # ---------------- DADOS OPCIONAIS ----------------
+    velocidade = request.data.get('velocidade')
+    tipo = request.data.get('tipo_infracao', 'desconhecido')
+    local = request.data.get('local', 'Radar automático')
+    valor = request.data.get('valor', 10000)
+
+    # converte velocidade
+    if velocidade:
+        try:
+            velocidade = float(velocidade)
+        except ValueError:
+            velocidade = None
+    else:
+        velocidade = None
+
+    # ---------------- OCR ----------------
+    try:
+        np_data = np.frombuffer(arquivo, np.uint8)
+        img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+        pil_img = Image.fromarray(thresh)
+        texto = pytesseract.image_to_string(pil_img, config="--psm 8")
+        matricula = ''.join(c for c in texto.upper() if c.isalnum())
+    except Exception as e:
+        matricula = None
 
     if not matricula:
-        return Response({'erro': 'Não foi possível ler'}, status=400)
+        matricula = "N/A"
 
-    veiculo = Veiculo.objects.filter(matricula__icontains=matricula).first()
+    # ---------------- PROCURAR VEÍCULO ----------------
+    veiculo = None
+    if matricula != "N/A":
+        try:
+            veiculo = Veiculo.objects.filter(matricula__icontains=matricula).first()
+        except:
+            veiculo = None
+
     if not veiculo:
-        return Response({'erro': 'Veículo não encontrado', 'matricula': matricula}, status=404)
+        veiculo = None  # mantém None se não encontrou
 
-    multa = Multa.objects.create(
-        veiculo=veiculo,
-        valor=100,
-        localizacao="Radar automático",
-        data=timezone.now(),
-        agente=request.user
-    )
+    # ---------------- HASH 32 ----------------
+    try:
+        hash_input = arquivo + str(timezone.now()).encode()
+        if matricula:
+            hash_input += matricula.encode()
+        hash_id = hashlib.md5(hash_input).hexdigest()
+    except:
+        hash_id = None
 
-    # Aqui usamos o serializer para devolver a multa
+    # ---------------- CRIAR MULTA ----------------
+    try:
+        multa = Multa.objects.create(
+            veiculo=veiculo,
+            valor=valor,
+            localizacao=local,
+            data=timezone.now(),
+            tipo=tipo,
+            velocidade=velocidade,
+            agente="admin",
+            confirmada=False
+        )
+    except Exception as e:
+        return Response({'erro': 'Falha ao criar multa', 'detalhes': str(e)}, status=500)
+
     serializer = MultaSerializer(multa)
-    return Response(serializer.data)
 
-
-"""
-
-
-   
-
-# Josemar Neves
-
-
+    # ---------------- RESPOSTA ----------------
+    return Response({
+        'status': 'ok',
+        'matricula_detectada': matricula,
+        'hash_id': hash_id,
+        'multa': serializer.data
+    })

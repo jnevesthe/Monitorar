@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
 
-    #path('api/multar/', views.api_multar, name='api_multar'),
+    path('api/multar/', views.api_multar, name='api_multar'),
     path('listc/', Listb.as_view(), name='list_c'),
     path('listb/', views.list_v, name='list_v'),
     path('logout_confirm/', views.logout_confirm, name='logout_confirm'),
