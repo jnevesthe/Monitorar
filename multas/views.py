@@ -184,6 +184,8 @@ from PIL import Image
 from django.shortcuts import render, redirect
 from .models import Veiculo
 
+import io
+
 def get_view(request):
     if request.method == "POST":
         tipo_busca = request.POST.get("tipo_busca")
@@ -197,14 +199,16 @@ def get_view(request):
             # Busca por imagem
             foto = request.FILES.get("foto")
             if foto:
+                print("OK")
                 try:
-                    # Abre a imagem e extrai o texto (OCR)
-                    img = Image.open(foto)
+                  
+                    img = Image.open(io.BytesIO(foto))
                     texto_extraido = pytesseract.image_to_string(img)
                     
                     # Limpeza básica do texto (remove espaços e coloca em maiúsculas)
                     # Pode ser necessário usar Regex aqui dependendo do padrão das matrículas
                     matricula = texto_extraido.strip().upper().replace(" ", "").replace("\n", "")
+           
                 except Exception as e:
                     return render(request, "get.html", {"erro": "Erro ao processar a imagem."})
             else:
@@ -251,9 +255,9 @@ from rest_framework.response import Response
 from django.utils import timezone
 from .models import Veiculo, Multa
 from .serializers import MultaSerializer
-import cv2, numpy as np
 from PIL import Image
 import pytesseract
+import io
 import hashlib
 
 @api_view(['POST'])
@@ -286,13 +290,12 @@ def api_multar(request):
 
     # ---------------- OCR ----------------
     try:
-        np_data = np.frombuffer(arquivo, np.uint8)
-        img = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-        pil_img = Image.fromarray(thresh)
-        texto = pytesseract.image_to_string(pil_img, config="--psm 8")
+        imagem = Image.open(io.BytesIO(arquivo))
+    
+        texto = pytesseract.image_to_string(imagem, config="--psm 8")
+    
         matricula = ''.join(c for c in texto.upper() if c.isalnum())
+
     except Exception as e:
         matricula = None
 
