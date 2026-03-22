@@ -182,16 +182,8 @@ class Detail(LoginRequiredMixin, DetailView):
 
 
 
-import pytesseract # Certifique-se de ter instalado: pip install pytesseract
-from PIL import Image
-from django.shortcuts import render, redirect
-from .models import Veiculo
-
-
-import cv2
-import numpy as np
-import pytesseract
-import io
+import requests
+from django.http import JsonResponse
 
 
 def get_view(request):
@@ -210,31 +202,26 @@ def get_view(request):
                 print("OK")
                 try:
                   
-                    np_array = np.frombuffer(foto, np.uint8)
+                    api_key = 'a8c272060a88957'  # sua chave OCR.Space
+                    response = requests.post(
+                        'https://api.ocr.space/parse/image',
+                        files={'file': foto},       # aceita InMemoryUploadedFile
+                        data={'apikey': api_key, 'language': 'por'}
+                )
 
-# Decodificar imagem (OpenCV)
-                    img = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+        # Converte a resposta em JSON
+                    result = response.json()
 
-# Converter para escala de cinza
-                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Extrai o texto
+                    try:
+                        texto = result['ParsedResults'][0]['ParsedText']
+                    except (KeyError, IndexError, TypeError):
+                        texto = ''
 
-# Reduz ruído (opcional mas ajuda)
-                    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-
-# Aumentar contraste (threshold)
-                    thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
-
-# OCR com configuração melhor
-                    texto_extraido = pytesseract.image_to_string(
-                        thresh,
-                        config="--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-                    )
-
-# Limpeza do texto
-                    matricula = texto_extraido.strip().upper().replace(" ", "").replace("\n", "")
-
-                    print("Matrícula:", matricula)           
+        # Limpa apenas letras e números
+                    matricula = texto.strip().upper()
                 except Exception as e:
+                    print(e)
                     return render(request, "get.html", {"erro": "Erro ao processar a imagem."})
             else:
                 return render(request, "get.html", {"erro": "Nenhuma foto foi enviada."})
@@ -280,9 +267,6 @@ from rest_framework.response import Response
 from django.utils import timezone
 from .models import Veiculo, Multa
 from .serializers import MultaSerializer
-from PIL import Image
-import pytesseract
-import io
 import hashlib
 
 @api_view(['POST'])
@@ -315,12 +299,24 @@ def api_multar(request):
 
     # ---------------- OCR ----------------
     try:
-        imagem = Image.open(io.BytesIO(arquivo))
-    
-        texto = pytesseract.image_to_string(imagem, config="--psm 8")
-    
-        matricula = ''.join(c for c in texto.upper() if c.isalnum())
+        
 
+    # envia a imagem direto para OCR.Space
+        api_key = 'a8c272060a88957'  # sua chave gratuita OCR.Space
+        response = requests.post(
+            'https://api.ocr.space/parse/image',
+            files={'file': arquivo},  # arquivo já em bytes
+            data={'apikey': api_key, 'language': 'por'}
+        )
+
+        result = response.json()
+
+        try:
+            texto = result['ParsedResults'][0]['ParsedText']
+        except (KeyError, IndexError, TypeError):
+            texto = ''
+
+        matricula = texto.strip().upper()
     except Exception as e:
         matricula = None
 
