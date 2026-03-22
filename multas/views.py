@@ -278,7 +278,7 @@ def api_multar(request):
         return Response({'erro': 'Foto obrigatória'}, status=400)
 
     try:
-        arquivo = request.FILES['foto'].read()
+        arquivo = request.FILES.get('foto')
     except Exception as e:
         return Response({'erro': 'Falha ao ler arquivo da foto', 'detalhes': str(e)}, status=500)
 
