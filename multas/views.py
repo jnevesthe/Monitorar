@@ -9,6 +9,9 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from .models import Proprietario, Veiculo, Multa
 
+
+
+
 class List(LoginRequiredMixin, ListView):
     model=Proprietario
     template_name='list.html'
@@ -184,7 +187,12 @@ from PIL import Image
 from django.shortcuts import render, redirect
 from .models import Veiculo
 
+
+import cv2
+import numpy as np
+import pytesseract
 import io
+
 
 def get_view(request):
     if request.method == "POST":
@@ -202,13 +210,30 @@ def get_view(request):
                 print("OK")
                 try:
                   
-                    img = Image.open(io.BytesIO(foto))
-                    texto_extraido = pytesseract.image_to_string(img)
-                    
-                    # Limpeza básica do texto (remove espaços e coloca em maiúsculas)
-                    # Pode ser necessário usar Regex aqui dependendo do padrão das matrículas
+                    np_array = np.frombuffer(foto, np.uint8)
+
+# Decodificar imagem (OpenCV)
+                    img = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+
+# Converter para escala de cinza
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# Reduz ruído (opcional mas ajuda)
+                    gray = cv2.bilateralFilter(gray, 11, 17, 17)
+
+# Aumentar contraste (threshold)
+                    thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+
+# OCR com configuração melhor
+                    texto_extraido = pytesseract.image_to_string(
+                        thresh,
+                        config="--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                    )
+
+# Limpeza do texto
                     matricula = texto_extraido.strip().upper().replace(" ", "").replace("\n", "")
-           
+
+                    print("Matrícula:", matricula)           
                 except Exception as e:
                     return render(request, "get.html", {"erro": "Erro ao processar a imagem."})
             else:
