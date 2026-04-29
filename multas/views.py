@@ -11,16 +11,9 @@ from .models import Proprietario, Veiculo, Multa
 
 
 
-
 class List(LoginRequiredMixin, ListView):
-    model=Proprietario
-    template_name='list.html'
-    context_object_name="proprietarios"
-    login_url='login'
-
-class Listb(LoginRequiredMixin, ListView):
     model=Veiculo
-    template_name='list_v.html'
+    template_name='list.html'
     context_object_name="veiculos"
     login_url='login'
 
@@ -35,7 +28,7 @@ def login_view(request):
         if(user):
             login(request, user)
             #print(user.autorizado)
-            return redirect('list_c')                    
+            return redirect('list')                    
             
     return render(request, 'login.html')     
     
@@ -44,45 +37,12 @@ def logout_view(request):
     return redirect('login')
 def pagina_404(request, exception=None):
     return render(request, '404.html', status=404)     
- 
-@login_required       
-def multar(request , pk):
-    
-    if request.method=='POST':
-        valor=request.POST.get('valor')
-        descricao=request.POST.get('descricao')
-        local=request.POST.get('local')
-        tipo = request.POST.get('tipo_infracao')
-        velocidade = request.POST.get('velocidade') # Virá vazio se não for excesso de velocidade
-        print("ok")
-        
-        multa=Multa.objects.create(
-            veiculo=Veiculo.objects.filter(id=pk).first(),
-            valor=valor,
-            localizacao=local,
-            data=timezone.now(),
-            tipo=tipo,
-	    velocidade=velocidade,
-            agente=request.user,            
-	    confirmada=False
-	    
-        )
-        
-        #m=Multa.objects.filter(id=multa.id)
-        return redirect('confirm', multa.id)
-        
-    
-    v=Veiculo.objects.filter(id=pk).first()
-    return render(request, 
-    'multar.html', 
-    {'v':v}
-    
-    )
 
 
 @login_required
-def multar1(request , pk):
+def multar(request , pk):
     if request.method=='POST':
+        foto = request.POST.get('foto')
         valor=request.POST.get('valor')
         local=request.POST.get('local')
         tipo = request.POST.get('tipo_infracao')
@@ -90,11 +50,14 @@ def multar1(request , pk):
           velocidade = request.POST.get('velocidade') # Virá vazio se não for excesso de velocidade
         except:
           velocidade=0
-        
+        if tipo == "sinal_vermelho":
+            valor = 5000
+                        
         print("ok")
 
         multa=Multa.objects.create(
             veiculo=Veiculo.objects.filter(id=pk).first(),
+            foto=foto,
             valor=valor,
             localizacao=local,
             data=timezone.now(),
@@ -106,17 +69,18 @@ def multar1(request , pk):
         )
 
         #m=Multa.objects.filter(id=multa.id)
-        return redirect('confirm1', multa.id)
+        return redirect('confirm', multa.id)
 
 
     v=Veiculo.objects.filter(id=pk).first()
-    return render(request,'multar1.html',{'v':v})
+    return render(request,'multar.html',{'v':v})
     
-    
-@login_required          
+
+
 def confirm(request, pk):
     multa=get_object_or_404(Multa, id=pk)
     return render(request, 'confirm.html', {'multa':multa})
+
 
 @login_required
 def confirmar_multa(request, pk):
@@ -127,42 +91,13 @@ def confirmar_multa(request, pk):
 
     return redirect('list')
 
-@login_required
-def confirmar_multa1(request, pk):
-    multa = get_object_or_404(Multa, id=pk)
-
-    multa.confirmada = True
-    multa.save()
-
-    return redirect('list_c')
-
-@login_required
-def confirm1(request, pk):
-    multa=get_object_or_404(Multa, id=pk)
-    return render(request, 'confirm1.html', {'multa':multa})
 
     
 class Delete(LoginRequiredMixin, DeleteView):
     model=Multa
     template_name='delete.html'
-    context_object_name='multa'    
-    success_url=reverse_lazy('list')
-    login_url='login'
-
-    def dispatch(self, request, *args, **kwargs):
-        multa = self.get_object()
-
-        if multa.confirmada:
-            return redirect('list')  # 🚫 bloqueia delete
-
-        return super().dispatch(request, *args, **kwargs)
-
-
-class Delete1(LoginRequiredMixin, DeleteView):
-    model=Multa
-    template_name='delete.html'
     context_object_name='multa'
-    success_url=reverse_lazy('list_v')
+    success_url=reverse_lazy('listb')
     login_url='login'
 
     def dispatch(self, request, *args, **kwargs):
@@ -246,13 +181,12 @@ def get_view(request):
 
 
 @login_required
-def list_v(request):
+def listb(request):
     # select_related busca o proprietário (ForeignKey)
     # prefetch_related busca todas as multas associadas (Related Name)
     veiculos = Veiculo.objects.select_related('proprietario').prefetch_related('multas').all()
     
-    return render(request, 'list_v.html', {'veiculos': veiculos})
-
+    return render(request, 'listb.html', {'veiculos': veiculos})
 
 
 @login_required
@@ -347,6 +281,7 @@ def api_multar(request):
     try:
         multa = Multa.objects.create(
             veiculo=veiculo,
+            foto=arquivo,
             valor=valor,
             localizacao=local,
             data=timezone.now(),
